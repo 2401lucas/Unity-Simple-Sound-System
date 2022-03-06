@@ -11,6 +11,8 @@ public class AudioControllerBase : MonoBehaviour
 {
     List<AudioSource> playingAudioSources = new List<AudioSource>();
 
+    float volume = 1f;
+
     private void FixedUpdate()
     {
         for (int i = 0; i < playingAudioSources.Count; i++)
@@ -21,6 +23,8 @@ public class AudioControllerBase : MonoBehaviour
             }
         }
     }
+
+    #region Public Audio Control
 
     public void Stop() { 
         for (int i = 0; i < playingAudioSources.Count; i++)
@@ -49,12 +53,19 @@ public class AudioControllerBase : MonoBehaviour
 
     public void SetVolume(float volume) { 
         float newVolume = Mathf.Clamp01(volume);
-
+        volume = newVolume;
         for (int i = 0; i < playingAudioSources.Count; i++)
         {
             playingAudioSources[i].volume = newVolume;
         }
     }
+    #endregion
+
+    protected void FadeInPlay(AudioSource audioTrack, float targetVolume, float fadeSpeed) => StartCoroutine(BeginFadeIn(audioTrack, targetVolume, fadeSpeed));
+
+    protected void FadeOutStop(AudioSource audioTrack, float targetVolume, float fadeSpeed) => StartCoroutine(BeginFadeOut(audioTrack, targetVolume, fadeSpeed));
+
+    protected void FadeInOut(AudioSource playingAudioTrack, AudioSource newAudioTrack, float targetVolume, float fadeSpeed) => StartCoroutine(BeginFadeInAndOut(playingAudioTrack, newAudioTrack, targetVolume, fadeSpeed));
 
     protected void Play(AudioClip audioClip, int[] worldPos = null)
     {
@@ -66,7 +77,7 @@ public class AudioControllerBase : MonoBehaviour
         else
             Play(GetTrack(audioClip.length, null), audioClip);
     }
-    
+
     void PlayInWorldSpace(AudioClip audioClip, int[] worldPos)
     {
         var track = GetTrack(audioClip.length, worldPos);
@@ -74,9 +85,10 @@ public class AudioControllerBase : MonoBehaviour
         Play(track, audioClip);
     }
 
-    void Play(AudioSource track, AudioClip clip) { 
-        track.clip = clip; 
-        track.Play(); 
+    void Play(AudioSource track, AudioClip clip)
+    {
+        track.clip = clip;
+        track.Play();
     }
 
     AudioSource GetTrack(float length, int[] worldPos)
@@ -100,5 +112,50 @@ public class AudioControllerBase : MonoBehaviour
         track.gameObject.SetActive(true);
 
         return track;
+    }
+
+    IEnumerator BeginFadeIn(AudioSource audioTrack, float targetVolume, float fadeSpeed)
+    {
+        while (audioTrack.volume >= targetVolume)
+        {
+            audioTrack.volume -= fadeSpeed * Time.time;
+
+            yield return 0;
+        }
+    }
+    
+    IEnumerator BeginFadeOut(AudioSource audioTrack, float targetVolume, float fadeSpeed)
+    {
+        while (audioTrack.volume <= targetVolume)
+        {
+            audioTrack.volume -= fadeSpeed * Time.time;
+
+            yield return 0;
+        }
+
+        audioTrack.Stop();
+    }
+
+    /// <summary>
+    /// Used for transitioning between sounds
+    /// </summary>
+    /// <returns></returns>
+    IEnumerator BeginFadeInAndOut(AudioSource oldAudioTrack, AudioSource newAudioTrack, float targetVolume, float fadeSpeed)
+    {
+        newAudioTrack.volume = 0f;
+        newAudioTrack.Play();
+
+        while (newAudioTrack.volume >= targetVolume && oldAudioTrack.volume == 0)
+        {
+            if (oldAudioTrack.volume > 0)
+                oldAudioTrack.volume -= fadeSpeed * Time.time;
+
+            if (newAudioTrack.volume < volume)
+                newAudioTrack.volume += fadeSpeed * Time.time;
+
+            yield return 0;
+        }
+
+        oldAudioTrack.Stop();
     }
 }
