@@ -12,6 +12,7 @@ public class AudioControllerBase : MonoBehaviour
     List<AudioSource> playingAudioSources = new List<AudioSource>();
 
     float volume = 1f;
+    bool mute = false;
 
     private void FixedUpdate()
     {
@@ -41,12 +42,14 @@ public class AudioControllerBase : MonoBehaviour
             playingAudioSources[i].UnPause();
     }
 
-    public void Mute() { 
+    public void Mute() {
+        mute = true;
         for (int i = 0; i < playingAudioSources.Count; i++)
             playingAudioSources[i].mute = true;
     }
 
-    public void UnMute() { 
+    public void UnMute() {
+        mute = false;
         for (int i = 0; i < playingAudioSources.Count; i++)
             playingAudioSources[i].mute = false;
     }
@@ -95,18 +98,18 @@ public class AudioControllerBase : MonoBehaviour
     {
         var track = AudioTrackPool.Instance.Get();
 
-        track.mute = track.mute;
-        track.volume = track.volume;
+        track.mute = mute;
+        track.volume = volume;
 
         if (worldPos!= null)
         {
             track.transform.position = new Vector3(worldPos[0], worldPos[1], worldPos[2]);
-            track.spatialBlend = 1.0f;
+            track.spatialBlend = 1.0f; //Enables 3D sound
         }
         else
         {
             track.transform.position = Vector3.zero;
-            track.spatialBlend = 0.0f;
+            track.spatialBlend = 0.0f;  //Enables 2D sound
         }
 
         track.gameObject.SetActive(true);
